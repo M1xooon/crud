@@ -1,58 +1,63 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import NoteForm from './components/NoteForm';
 import NoteCard from './components/NoteCard';
 
 const API_URL = 'http://localhost:7070/notes';
 
-export default class App extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { notes: [], loading: false, error: null };
-  }
+export default function App() {
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  componentDidMount() {
-    this.fetchNotes();
-  }
-
-  fetchNotes = () => {
-    this.setState({ loading: true, error: null });
+  const fetchNotes = () => {
+    setLoading(true);
+    setError(null);
     fetch(API_URL)
-      .then((res) => res.json())
-      .then((data) => this.setState({ notes: data, loading: false }))
-      .catch((err) => this.setState({ error: err.message, loading: false }));
+      .then(res => {
+        if (!res.ok) throw new Error('Ошибка сети');
+        return res.json();
+      })
+      .then(data => setNotes(data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   };
 
-  addNote = (content) => {
-    const newNote = { content };
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+  const addNote = (content) => {
     fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newNote),
+      body: JSON.stringify({ id: 0, content })
     })
-      .then(() => this.fetchNotes())
-      .catch((err) => alert('Ошибка при добавлении заметки: ' + err.message));
+      .then(res => {
+        if (!res.ok) throw new Error('Ошибка при добавлении');
+        fetchNotes();
+      })
+      .catch(err => alert(err.message));
   };
 
-  deleteNote = (id) => {
+  const deleteNote = (id) => {
     fetch(`${API_URL}/${id}`, { method: 'DELETE' })
-      .then(() => this.fetchNotes())
-      .catch((err) => alert('Ошибка при удалении заметки: ' + err.message));
+      .then(res => {
+        if (!res.ok) throw new Error('Ошибка при удалении');
+        fetchNotes();
+      })
+      .catch(err => alert(err.message));
   };
 
-  render() {
-    const { notes, loading, error } = this.state;
-    return (
-      <div>
-        <h1>Заметки</h1>
-        <NoteForm onAdd={this.addNote} />
-        {loading && <p>Загрузка...</p>}
-        {error && <p style={{ color: 'red' }}>Ошибка: {error}</p>}
-        <div>
-          {notes.map((note) => (
-            <NoteCard key={note.id} note={note} onDelete={this.deleteNote} />
-          ))}
-        </div>
+  return (
+    <div className="app">
+      <h1>CRUD: Заметки</h1>
+      <button onClick={fetchNotes} className="btn-refresh">⟳ Обновить</button>
+      <NoteForm onAdd={addNote} />
+      {loading && <p>Загрузка...</p>}
+      {error && <p style={{color:'red'}}>Ошибка: {error}</p>}
+      <div className="note-list">
+        {notes.map(note => <NoteCard key={note.id} note={note} onDelete={deleteNote} />)}
       </div>
-    );
-  }
+    </div>
+  );
 }

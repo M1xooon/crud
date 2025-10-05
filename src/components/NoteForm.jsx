@@ -1,35 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export default class NoteForm extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { content: '' };
-  }
+export default function NoteForm({ onAdd }) {
+  const [content, setContent] = useState('');
 
-  onChange = (e) => {
-    this.setState({ content: e.target.value });
-  };
-
-  onSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const { content } = this.state;
-    if (content.trim()) {
-      this.props.onAdd(content);
-      this.setState({ content: '' });
-    }
+    if (!content.trim()) return alert('Введите текст заметки');
+    onAdd(content);
+    setContent('');
   };
 
-  render() {
-    return (
-      <form onSubmit={this.onSubmit}>
-        <input
-          type="text"
-          placeholder="Новая заметка"
-          value={this.state.content}
-          onChange={this.onChange}
-        />
-        <button type="submit">Добавить</button>
-      </form>
-    );
-  }
+  return (
+    <form onSubmit={handleSubmit}>
+      <input type="text" placeholder="Новая заметка" value={content} onChange={(e) => setContent(e.target.value)} />
+      <button type="submit">Добавить</button>
+    </form>
+  );
 }
